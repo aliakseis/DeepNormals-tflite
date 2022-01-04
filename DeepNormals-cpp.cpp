@@ -2,7 +2,6 @@
 //
 
 #include "opencv2/highgui.hpp"
-#include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
 
 
@@ -10,10 +9,7 @@
 #include <tuple>
 #include <string>
 
-#include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
-#include "tensorflow/lite/model.h"
-#include "tensorflow/lite/optional_debug_tools.h"
 
 
 namespace {
@@ -169,13 +165,13 @@ auto CropMultiScale_ZeroPadding_2(int x, int y, const cv::Mat& image, const cv::
     for (auto& v : img_blank)
         v = cv::Mat::zeros(size, size, CV_32FC1);
 
-    auto x1 = int(x / 2) + size + 1;
-    auto y1 = int(y / 2) + size + 1;
-    auto x2 = int(x / 4) + size + 1;
-    auto y2 = int(y / 4) + size + 1;
-    x = x + size + 1;
-    y = y + size + 1;
-    size = int(size / 2);
+    auto x1 = x / 2 + size + 1;
+    auto y1 = y / 2 + size + 1;
+    auto x2 = x / 4 + size + 1;
+    auto y2 = y / 4 + size + 1;
+    x += size + 1;
+    y += size + 1;
+    size /= 2;
 
     {
         auto[xm, xM, Xm, XM] = BorderHandle(x1, size, image_2.cols);
@@ -225,8 +221,7 @@ int main(int argc, char** argv)
 
 
            // create model
-        std::unique_ptr<tflite::FlatBufferModel> model =
-            tflite::FlatBufferModel::BuildFromFile("/solutions/DeepNormals-tflite/model.tflite");
+        auto model = tflite::FlatBufferModel::BuildFromFile("/solutions/DeepNormals-tflite/model.tflite");
         tflite::ops::builtin::BuiltinOpResolver resolver;
         std::unique_ptr<tflite::Interpreter> interpreter;
         tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
@@ -315,12 +310,7 @@ int main(int argc, char** argv)
 
                 int x = off + pos[i].x;
                 int y = off + pos[i].y;
-                try {
-                    rec({ Point(x - s, y - s), Point(x + s, y + s) }) += pred;
-                }
-                catch (...) {
-                    throw;
-                }
+                rec({ Point(x - s, y - s), Point(x + s, y + s) }) += pred;
             }
 
             ++ind;
